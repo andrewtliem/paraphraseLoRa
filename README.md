@@ -27,7 +27,7 @@ This is **not only about making the text look different**. The goal is to revise
 
 ## Dataset Format
 
-Prepare a `.jsonl` file where each line contains one chat-style training example with `messages`.
+Prepare either a `.jsonl` file, where each line contains one chat-style training example with `messages`, or a `.json` file containing an array of the same objects. The training script can read either format through Hugging Face `load_dataset("json", ...)`.
 
 Each example should contain:
 
@@ -35,10 +35,11 @@ Each example should contain:
 2. A `user` message containing the rough, generic, or draft text.
 3. An `assistant` message containing your desired revised version.
 
-The repository includes a small dummy dataset at:
+The repository includes the same small dummy dataset in two formats:
 
 ```text
-examples/writing_style_examples.jsonl
+examples/writing_style_examples.jsonl  # line-delimited JSON, useful for training
+examples/writing_style_examples.json   # regular JSON array, easier to upload to tools that reject .jsonl
 ```
 
 A single training row looks like this:
@@ -53,18 +54,23 @@ A paragraph-level example looks like this:
 {"messages": [{"role": "system", "content": "You revise generic academic text into the user's academic writing style while preserving meaning."}, {"role": "user", "content": "Revise this paragraph in my academic writing style:\n\nDynamic bandwidth allocation is a technique that changes how much bandwidth each device receives. It is useful because network traffic is not always the same. When more users send data, the system can change the allocation."}, {"role": "assistant", "content": "Dynamic bandwidth allocation adjusts the bandwidth assigned to each device according to variations in network traffic demand. This mechanism is useful because traffic conditions are not static. As more users transmit data, the system can modify the allocation to better match the current network state."}]}
 ```
 
-For your real training run, copy the example file and replace the dummy rows with your own paired examples:
+For your real training run, copy one example file and replace the dummy rows with your own paired examples:
 
 ```bash
 mkdir -p data
 cp examples/writing_style_examples.jsonl data/writing_style_examples.jsonl
+# or, if your upload/tooling system does not accept .jsonl:
+cp examples/writing_style_examples.json data/writing_style_examples.json
 ```
 
-Then edit:
+Then edit one of these files:
 
 ```text
 data/writing_style_examples.jsonl
+data/writing_style_examples.json
 ```
+
+If a platform says `.jsonl` is unsupported, use the `.json` version. It contains the same records as a normal JSON array.
 
 ### Dataset Writing Tips
 
@@ -109,8 +115,9 @@ Edit these variables in `fine_tune_qlora_writing_style.py`:
 ```python
 BASE_MODEL = "Qwen/Qwen2.5-3B-Instruct"
 DATASET_PATH = "/content/drive/MyDrive/path/to/writing_style_examples.jsonl"
-# For a quick local smoke test, you can also use:
+# For a quick local smoke test, you can also use either:
 # DATASET_PATH = "examples/writing_style_examples.jsonl"
+# DATASET_PATH = "examples/writing_style_examples.json"
 OUTPUT_DIR = "/content/drive/MyDrive/path/to/writing-style-qwen-lora"
 STYLE_OWNER = "the user's"
 ```
@@ -152,7 +159,8 @@ When fine-tuning a personal writing-style model:
 ```text
 fine_tune_qlora_writing_style.py  # training + inference template
 sample_data.jsonl                 # tiny dummy dataset example
-examples/writing_style_examples.jsonl # larger dummy dataset example
+examples/writing_style_examples.jsonl # larger dummy dataset example, JSONL format
+examples/writing_style_examples.json  # same dummy dataset, regular JSON format
 requirements.txt                  # Python packages
 README.md                         # this guide
 ```

@@ -31,9 +31,11 @@ DTYPE = None
 LOAD_IN_4BIT = True
 RANDOM_SEED = 3407
 
-# Replace this with your own JSONL dataset path.
+# Replace this with your own JSONL or JSON dataset path.
 # Example for Colab + Google Drive:
 # DATASET_PATH = "/content/drive/MyDrive/my-writing-style/data/writing_style_examples.jsonl"
+# If your upload/tooling system rejects .jsonl, use a regular JSON array file instead:
+# DATASET_PATH = "/content/drive/MyDrive/my-writing-style/data/writing_style_examples.json"
 DATASET_PATH = "data/writing_style_examples.jsonl"
 
 # Replace this with your desired output directory.
