@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Fine-tune a QLoRA adapter for academic writing-style paraphrasing.
+"""Fine-tune a QLoRA adapter for academic writing-style revision.
 
 This script is a sanitized template based on a Colab workflow.
-It trains a LoRA adapter that rewrites generic academic text into a target
-writing style while preserving the original meaning.
+It trains a LoRA adapter that revises rough or generic academic text into a
+target writing style while preserving the original meaning. The goal is not
+only to make text different; it is to improve academic phrasing, structure,
+precision, and tone without adding unsupported claims.
 
 Replace all dummy paths and style labels before running.
 """
@@ -182,14 +184,14 @@ def load_lora_for_inference(model_dir: str = OUTPUT_DIR):
 
 
 def build_revision_messages(text: str, mode: str = "sentence"):
-    """Build chat messages for sentence or paragraph rewriting."""
+    """Build chat messages for sentence or paragraph revision."""
     unit = "paragraph" if mode == "paragraph" else "sentence"
     return [
         {
             "role": "system",
             "content": (
-                f"You rewrite academic {unit}s into {STYLE_OWNER} academic writing style. "
-                "You must change the wording and sentence structure while preserving the original meaning. "
+                f"You revise academic {unit}s into {STYLE_OWNER} academic writing style. "
+                "Improve wording, sentence structure, academic tone, precision, and flow while preserving the original meaning. "
                 "Use precise terminology and formal academic structure. "
                 "Do not add new claims, examples, assumptions, citations, or explanations. "
                 f"Return only one complete rewritten {unit}."
@@ -198,9 +200,9 @@ def build_revision_messages(text: str, mode: str = "sentence"):
         {
             "role": "user",
             "content": (
-                f"Rewrite the following {unit} into my academic writing style. "
-                "Do not copy the original wording. Preserve the original meaning.\n\n"
-                f"Original {unit}:\n{text}\n\nRewritten {unit}:"
+                f"Revise the following {unit} into my academic writing style. "
+                "Do not merely make it different; improve academic phrasing while preserving the original meaning.\n\n"
+                f"Original {unit}:\n{text}\n\nRevised {unit}:"
             ),
         },
     ]
