@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+.env
+
+# Training outputs / model artifacts
+outputs/
+checkpoints/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.gguf
+
+# Data splits and local datasets
+# Keep sample_data.jsonl tracked, but avoid accidentally committing private datasets.
+data/
+!sample_data.jsonl
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
