@@ -12,7 +12,7 @@ The example uses:
 - TRL `SFTTrainer`
 - A JSONL chat-style dataset
 
-> This is a template. Replace the dummy paths, dataset examples, and style description with your own.
+> This is a template. Replace the dummy paths, dataset examples, and style description with your own. You do **not** need a local GPU if you run it on Google Colab, including through the Colab CLI.
 
 ## What This Does
 
@@ -47,6 +47,82 @@ The repository includes the full fine-tuning and inference flow in [`fine_tune_q
 | Demo inference | `demo_inference(...)` | Runs example sentence, paragraph, and sentence-by-sentence tests. |
 
 The main script intentionally keeps the workflow in one file so it can be copied into Colab and run top-to-bottom.
+
+
+## Running Without a Local GPU: Colab or Colab CLI
+
+You do **not** need an NVIDIA GPU on your own laptop or workstation to run this example. The intended workflow is to run the training on a Google Colab GPU runtime.
+
+There are two practical ways to do that:
+
+1. **Colab notebook UI** — upload/copy the script into a Colab notebook and run it with a GPU runtime.
+2. **Colab CLI** — run the same Python script on an active Colab VM from your terminal using `google-colab-cli`.
+
+This is useful when your local machine is only used for editing files and GitHub commits, while the actual QLoRA training runs remotely on Colab.
+
+### Option A — Run in the Colab Notebook UI
+
+In Colab:
+
+1. Open a new notebook.
+2. Set runtime type to GPU.
+3. Mount Google Drive if your dataset/output will live there:
+
+```python
+from google.colab import drive
+drive.mount('/content/drive')
+```
+
+4. Install dependencies:
+
+```bash
+pip install unsloth
+pip install --upgrade transformers datasets trl accelerate bitsandbytes
+```
+
+5. Copy or upload `fine_tune_qlora_writing_style.py` and run it.
+
+### Option B — Run with Colab CLI
+
+If you use [`google-colab-cli`](https://pypi.org/project/google-colab-cli/), you can execute the script on an active Colab session from your terminal.
+
+Install or update the CLI locally:
+
+```bash
+uv tool install google-colab-cli
+# or update it:
+uv tool install -U google-colab-cli
+```
+
+Check authentication and available sessions:
+
+```bash
+colab version
+colab sessions
+```
+
+If `colab sessions` shows an active session, copy the session id/name and run a quick smoke test:
+
+```bash
+printf "%s\n" \
+  "import torch" \
+  "print('cuda available:', torch.cuda.is_available())" \
+  "print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'no gpu')" \
+| colab exec -s <SESSION_ID> --timeout 120
+```
+
+Then execute the training script remotely:
+
+```bash
+colab exec -s <SESSION_ID> -f fine_tune_qlora_writing_style.py --timeout 7200
+```
+
+Important notes:
+
+- Replace `<SESSION_ID>` with the id shown by `colab sessions`.
+- Keep dataset and output paths compatible with the Colab VM, for example under `/content/drive/MyDrive/...` if you mount Drive.
+- Long training runs may take time; use a generous timeout.
+- Stop unused Colab sessions when finished so they do not burn compute.
 
 ## Dataset Format
 
@@ -115,9 +191,9 @@ Recommended starting size:
 
 Keep private names, unpublished results, confidential institutional data, and sensitive source text out of the public dataset.
 
-## Colab Setup
+## Minimal Colab Setup Commands
 
-If you are running this in Google Colab, start with:
+If you are running this directly in a Google Colab notebook, start with:
 
 ```python
 from google.colab import drive
