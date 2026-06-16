@@ -25,6 +25,29 @@ Output: the same meaning revised into your academic writing style
 
 This is **not only about making the text look different**. The goal is to revise wording, sentence structure, academic tone, precision, and flow while preserving the original meaning. The model should not invent new technical content, citations, results, or claims.
 
+## Complete Workflow Included
+
+The repository includes the full fine-tuning and inference flow in [`fine_tune_qlora_writing_style.py`](./fine_tune_qlora_writing_style.py), not only dataset examples.
+
+| Step | Where it is in the code | What it does |
+|---|---|---|
+| Load base model | `load_base_model()` | Loads `Qwen/Qwen2.5-3B-Instruct` with Unsloth in 4-bit mode. |
+| Add QLoRA adapter | `add_lora_adapter(model)` | Adds LoRA adapters to attention and MLP projection layers. |
+| Load dataset | `prepare_dataset(tokenizer)` | Loads `.jsonl` or `.json` chat-style data with Hugging Face `load_dataset("json", ...)`. |
+| Split train/validation/test | `prepare_dataset(tokenizer)` | Splits the dataset into train, validation, and test portions. |
+| Save split files | `prepare_dataset(tokenizer)` | Writes `data/splits/train.jsonl`, `validation.jsonl`, and `test.jsonl`. |
+| Apply chat template | `formatting_prompts_func(...)` | Converts `messages` into model-ready chat text using `tokenizer.apply_chat_template(...)`. |
+| Configure training | `SFTConfig(...)` inside `train()` | Sets batch size, accumulation, learning rate, eval steps, save steps, bf16/fp16, and optimizer. |
+| Fine-tune model | `trainer.train()` | Runs supervised fine-tuning with TRL `SFTTrainer`. |
+| Save LoRA model | `model.save_pretrained(OUTPUT_DIR)` | Saves the trained LoRA adapter. |
+| Save tokenizer | `tokenizer.save_pretrained(OUTPUT_DIR)` | Saves the tokenizer with the adapter. |
+| Load trained model | `load_lora_for_inference(...)` | Reloads the saved LoRA adapter for inference. |
+| Use the model | `generate_revision(...)` | Revises a sentence or paragraph using the trained adapter. |
+| Paragraph workflow | `revise_paragraph_sentence_by_sentence(...)` | Revises longer paragraphs sentence by sentence for more control. |
+| Demo inference | `demo_inference(...)` | Runs example sentence, paragraph, and sentence-by-sentence tests. |
+
+The main script intentionally keeps the workflow in one file so it can be copied into Colab and run top-to-bottom.
+
 ## Dataset Format
 
 Prepare either a `.jsonl` file, where each line contains one chat-style training example with `messages`, or a `.json` file containing an array of the same objects. The training script can read either format through Hugging Face `load_dataset("json", ...)`.
@@ -110,6 +133,49 @@ pip install --upgrade transformers datasets trl accelerate bitsandbytes
 
 ## Training
 
+The training flow is implemented in the `train()` function:
+
+```python
+def train():
+    model, tokenizer = load_base_model()
+    model = add_lora_adapter(model)
+    dataset = prepare_dataset(tokenizer)
+
+    training_args = SFTConfig(...)
+
+    trainer = SFTTrainer(
+        model=model,
+        args=training_args,
+        train_dataset=dataset["train"],
+        eval_dataset=dataset["validation"],
+        processing_class=tokenizer,
+    )
+
+    trainer.train()
+    model.save_pretrained(OUTPUT_DIR)
+    tokenizer.save_pretrained(OUTPUT_DIR)
+```
+
+Dataset splitting happens before training:
+
+```python
+split_1 = raw.train_test_split(test_size=0.15, seed=RANDOM_SEED)
+train_data = split_1["train"]
+temp_data = split_1["test"]
+
+split_2 = temp_data.train_test_split(test_size=0.5, seed=RANDOM_SEED)
+valid_data = split_2["train"]
+test_data = split_2["test"]
+```
+
+This gives approximately:
+
+```text
+85.0% train
+ 7.5% validation
+ 7.5% test
+```
+
 Edit these variables in `fine_tune_qlora_writing_style.py`:
 
 ```python
@@ -130,7 +196,34 @@ python fine_tune_qlora_writing_style.py
 
 ## Inference
 
-After training, the script reloads the LoRA adapter and runs sample sentence/paragraph revision. The inference prompts are written as **revision prompts**, not as generic paraphrase prompts.
+After training, the script reloads the saved LoRA adapter and uses it for revision.
+
+Model loading happens here:
+
+```python
+inference_model, inference_tokenizer = load_lora_for_inference(OUTPUT_DIR)
+```
+
+The loader uses:
+
+```python
+model, tokenizer = FastLanguageModel.from_pretrained(
+    model_name=model_dir,
+    max_seq_length=MAX_SEQ_LENGTH,
+    dtype=DTYPE,
+    load_in_4bit=LOAD_IN_4BIT,
+)
+FastLanguageModel.for_inference(model)
+```
+
+Text revision happens through:
+
+```python
+generate_revision(model, tokenizer, text, mode="sentence")
+generate_revision(model, tokenizer, text, mode="paragraph")
+```
+
+The inference prompts are written as **revision prompts**, not as generic paraphrase prompts.
 
 Example inference goal:
 
